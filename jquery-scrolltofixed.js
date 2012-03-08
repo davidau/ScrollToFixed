@@ -12,8 +12,8 @@
  * This plugin has been tested in Firefox 3+, Google Chrome 10+, Safari 5+,
  * and Internet Explorer 8/9.
  */
-(function($) {
-    $.ScrollToFixed = function(el, options) {
+(function ($) {
+    $.ScrollToFixed = function (el, options) {
         // To avoid scope issues, use 'base' instead of 'this' to reference this
         // class from internal events and functions.
         var base = this;
@@ -41,7 +41,7 @@
         // scroll.
         var offsetLeft = 0;
         var originalOffsetLeft = -1;
-        
+
         // This last offset used to move the element horizontally. This is used
         // to determine if we need to move the element because we would not want
         // to do that for no reason.
@@ -76,7 +76,7 @@
 
             // Set that this has been called at least once.
             isReset = true;
-            
+
             if (base.options.bottom != -1) {
                 setFixed();
             }
@@ -104,20 +104,20 @@
                 // Set the spacer to fill the height and width of the target
                 // element, then display it.
                 spacer.css({
-                    'display' : target.css('display'),
-                    'width' : target.outerWidth(true),
-                    'height' : target.outerHeight(true),
-                    'float' : target.css('float')
+                    'display': target.css('display'),
+                    'width': target.outerWidth(true),
+                    'height': target.outerHeight(true),
+                    'float': target.css('float')
                 });
 
                 // Set the target element to fixed and set its width so it does
                 // not fill the rest of the page horizontally. Also, set its top
                 // to the margin top specified in the options.
                 target.css({
-                    'width' : target.width(),
-                    'position' : 'fixed',
-                    'top' : base.options.bottom == -1?getMarginTop():'',
-                    'bottom' : base.options.bottom == -1?'':base.options.bottom
+                    'width': target.width(),
+                    'position': 'fixed',
+                    'top': base.options.bottom == -1 ? ((base.options.scrollDiv) ? getMarginTop() - target.height() : getMarginTop()) : '',
+                    'bottom': base.options.bottom == -1 ? '' : base.options.bottom
                 });
             }
         }
@@ -135,10 +135,10 @@
                 // Remove the style attributes that were added to the target.
                 // This will reverse the target back to the its original style.
                 target.css({
-                    'width' : '',
-                    'position' : '',
-                    'left' : '',
-                    'top' : ''
+                    'width': '',
+                    'position': '',
+                    'left': '',
+                    'top': ''
                 });
             }
         }
@@ -158,6 +158,9 @@
         }
 
         function getMarginTop() {
+            if (base.options.scrollDiv) {
+                return base.options.marginTop + $(base.options.scrollDiv).scrollTop();
+            }
             return base.options.marginTop;
         }
 
@@ -171,10 +174,10 @@
             }
 
             // Grab the current horizontal scroll position.
-            var x = $(window).scrollLeft();
+            var x = (base.options.scrollDiv) ? $(base.options.scrollDiv).offset().left : $(window).scrollLeft();
 
             // Grab the current vertical scroll position.
-            var y = $(window).scrollTop();
+            var y = (base.options.scrollDiv) ? $(base.options.scrollDiv).offset().top : $(window).scrollTop();
 
             // If the vertical scroll position, plus the optional margin, would
             // put the target element at the specified limit, set the target
@@ -188,16 +191,16 @@
                         postPosition();
                         target.trigger('preAbsolute');
                         target.css({
-                            'width' : target.width(),
-                            'position' : 'absolute',
-                            'top' : base.options.limit,
-                            'left' : offsetLeft
+                            'width': target.width(),
+                            'position': 'absolute',
+                            'top': base.options.limit,
+                            'left': offsetLeft
                         });
                         target.trigger("unfixed");
                     }
-                // If the vertical scroll position, plus the optional margin, would
-                // put the target element above the top of the page, set the target
-                // element to fixed.
+                    // If the vertical scroll position, plus the optional margin, would
+                    // put the target element above the top of the page, set the target
+                    // element to fixed.
                 } else if (y >= offsetTop - getMarginTop()) {
                     if (!isFixed()) {
                         postPosition();
@@ -226,7 +229,8 @@
                 }
             } else {
                 if (base.options.limit > 0) {
-                    if (y + $(window).height() - target.outerHeight(true) >= base.options.limit - getMarginTop()) {
+                    var divOrWindowHeight = (base.options.scrollDiv) ? $(base.options.scrollDiv).height() : $(window).height();
+                    if (y + divOrWindowHeight - target.outerHeight(true) >= base.options.limit - getMarginTop()) {
                         if (isFixed()) {
                             postPosition();
                             target.trigger('preUnfixed');
@@ -250,7 +254,7 @@
 
         function postPosition() {
             var position = target.css('position');
-            
+
             if (position == 'absolute') {
                 target.trigger('postAbsolute');
             } else if (position == 'fixed') {
@@ -259,20 +263,20 @@
                 target.trigger('postUnfixed');
             }
         }
-        
-        var windowResize = function(event) {
+
+        var windowResize = function (event) {
             resetScroll();
             checkScroll();
-        }
-        
-        var windowScroll = function(event) {
+        };
+
+        var windowScroll = function (event) {
             checkScroll();
-        }
-        
+        };
+
         // Initializes this plugin. Captures the options passed in, turns this
         // off for iOS, adds the spacer, and binds to the window scroll and
         // resize events.
-        base.init = function() {
+        base.init = function () {
             // Capture the options for this plugin.
             base.options = $
                     .extend({}, $.ScrollToFixed.defaultOptions, options);
@@ -298,14 +302,23 @@
             // Place the spacer right after the target element.
             base.$el.after(spacer);
 
+
             // Reset the target element offsets when the window is resized, then
             // check to see if we need to fix or unfix the target element.
-            $(window).bind('resize.ScrollToFixed', windowResize);
+            if (base.options.scrollDiv) {
+                $(base.options.scrollDiv).bind('resize.ScrollToFixed', windowResize);
+            } else {
+                $(window).bind('resize.ScrollToFixed', windowResize);
+            }
 
             // When the window scrolls, check to see if we need to fix or unfix
             // the target element.
-            $(window).bind('scroll.ScrollToFixed', windowScroll);
-            
+            if (base.options.scrollDiv) {
+                $(base.options.scrollDiv).bind('scroll.ScrollToFixed', windowScroll);
+            } else {
+                $(window).bind('scroll.ScrollToFixed', windowScroll);
+            }
+
             if (base.options.preFixed) {
                 target.bind('preFixed.ScrollToFixed', base.options.preFixed);
             }
@@ -335,22 +348,33 @@
                 spacer.addClass(base.options.spacerClass);
             }
 
-            target.bind('resize', function() {
+            target.bind('resize', function () {
                 spacer.height(target.height());
             });
 
-            target.bind('scroll.ScrollToFixed', function() {
+            target.bind('scroll.ScrollToFixed', function () {
                 setUnfixed();
                 checkScroll();
             });
 
-            target.bind('remove.ScrollToFixed', function() {
-                setUnfixed();
-                $(window).unbind('resize', windowResize);
-                $(window).unbind('scroll', windowScroll);
-                target.unbind('.ScrollToFixed');
-            });
-            
+
+            if (base.options.scrollDiv) {
+                target.bind('remove.ScrollToFixed', function () {
+                    setUnfixed();
+                    $(base.options.scrollDiv).unbind('resize', windowResize);
+                    $(base.options.scrollDiv).unbind('scroll', windowScroll);
+                    target.unbind('.ScrollToFixed');
+                });
+            }
+            else {
+                target.bind('remove.ScrollToFixed', function () {
+                    setUnfixed();
+                    $(window).unbind('resize', windowResize);
+                    $(window).unbind('scroll', windowScroll);
+                    target.unbind('.ScrollToFixed');
+                });
+            }
+
             if (base.options.bottom != -1) {
                 if (!isFixed()) {
                     postPosition();
@@ -366,16 +390,16 @@
 
     // Sets the option defaults.
     $.ScrollToFixed.defaultOptions = {
-        marginTop : 0,
-        limit : 0,
-        bottom : -1,
-        zIndex : 1000
+        marginTop: 0,
+        limit: 0,
+        bottom: -1,
+        zIndex: 1000
     };
 
     // Returns enhanced elements that will fix to the top of the page when the
     // page is scrolled.
-    $.fn.scrollToFixed = function(options) {
-        return this.each(function() {
+    $.fn.scrollToFixed = function (options) {
+        return this.each(function () {
             (new $.ScrollToFixed(this, options));
         });
     };
