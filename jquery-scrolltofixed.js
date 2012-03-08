@@ -66,12 +66,21 @@
             lastOffsetLeft = -1;
 
             // Capture the offset top of the target element.
-            offsetTop = target.offset().top;
+            if (base.options.scrollDiv) {
+                offsetTop = target.offset().top + $(base.options.scrollDiv).offset().top;
+            } else {
+                offsetTop = target.offset().top;
+            }
 
             // Capture the offset left of the target element.
-            offsetLeft = target.offset().left + (target.offset().left - target.position().left);
+            if (base.options.scrollDiv) {
+                offsetLeft = target.offset().left + (target.offset().left - target.position().left) - $(base.options.scrollDiv).offset().left;
+            } else {
+                offsetLeft = target.offset().left + (target.offset().left - target.position().left);
+            }
+            
             if (originalOffsetLeft == -1) {
-                orginalOffsetLeft = offsetLeft;
+                originalOffsetLeft = offsetLeft;
             }
 
             // Set that this has been called at least once.
@@ -116,7 +125,7 @@
                 target.css({
                     'width': target.width(),
                     'position': 'fixed',
-                    'top': base.options.bottom == -1 ? ((base.options.scrollDiv) ? getMarginTop() - target.height() : getMarginTop()) : '',
+                    'top': base.options.bottom == -1 ? getMarginTop() : '',
                     'bottom': base.options.bottom == -1 ? '' : base.options.bottom
                 });
             }
@@ -159,7 +168,7 @@
 
         function getMarginTop() {
             if (base.options.scrollDiv) {
-                return base.options.marginTop + $(base.options.scrollDiv).scrollTop();
+                return base.options.marginTop + $(base.options.scrollDiv).offset().top;
             }
             return base.options.marginTop;
         }
@@ -174,10 +183,10 @@
             }
 
             // Grab the current horizontal scroll position.
-            var x = (base.options.scrollDiv) ? $(base.options.scrollDiv).offset().left : $(window).scrollLeft();
+            var x = (base.options.scrollDiv) ? $(base.options.scrollDiv).scrollLeft() : $(window).scrollLeft();
 
             // Grab the current vertical scroll position.
-            var y = (base.options.scrollDiv) ? $(base.options.scrollDiv).offset().top : $(window).scrollTop();
+            var y = (base.options.scrollDiv) ? $(base.options.scrollDiv).scrollTop() : $(window).scrollTop();
 
             // If the vertical scroll position, plus the optional margin, would
             // put the target element at the specified limit, set the target
